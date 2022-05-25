@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AIMLForAndroid">
+        <activity
+            android:name=".UI.Classroom.AddPost"
+            android:exported="false" />
+        <activity
+            android:name=".UI.ResetPassWord.ResetPassWord"
+            android:exported="false" />
+        <activity
+            android:name=".UI.Classroom.StudentList"
+            android:exported="false" />
+        <activity
+            android:name=".UI.Classroom.AttendancedList"
+            android:exported="false" />
+        <activity
+            android:name=".UI.Classroom.CreateAttendanceRoom.CreateAttendance"
+            android:exported="false" />
+        <activity
+            android:name=".UI.Attendance.Attendance"
+            android:exported="false" />
+        <activity
+            android:name=".UI.AddFaceData.AddFaceData"
+            android:exported="false" />
+        <activity
+            android:name=".UI.diemdanhtest"
+            android:exported="false" />
+        <activity
+            android:name=".UI.Classroom.ClassroomDetail"
+            android:exported="false"
+            android:label="@string/title_activity_classroom_detail" />
+        <activity
+            android:name=".UI.PROFILE.PROFILE"
+            android:exported="false" />
+        <activity
+            android:name=".UI.JoinClassroom.JoinClassroom"
+            android:exported="false" />
+        <activity
+            android:name=".UI.AddClass.AddClass"
+            android:exported="false" />
+        <activity
+            android:name=".UI.SIGNUP.Signup"
+            android:exported="false" />
+        <activity
+            android:name=".UI.HOME.Home"
+            android:exported="false" />
+        <activity
+            android:name=".UI.LOGIN.Login"
+            android:exported="false" />
+        <activity
+            android:name=".SpLash"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

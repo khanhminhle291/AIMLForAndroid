@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">AIML For Android</string>
+    <string name="no_account">Không có tài khoản ?</string>
+    <string name="signup">Đăng ký</string>
+    <string name="successful">Thành công</string>
+    <string name="failure">Thất bại</string>
+    <string name="signup_successful">Đăng ký thành công</string>
+    <string name="signup_failure">Đăng ký thất bại</string>
+    <string name="email_fomat_error">Lỗi định dạng email</string>
+    <string name="not_null">Không được bỏ trống</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="add_classroom">Thêm lớp học</string>
+    <string name="join_classroom">Vào lớp học</string>
+    <string name="class_is_not_exist">Lóp học không tồn tại</string>
+    <string name="title_activity_classroom_detail">ClassroomDetail</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
+    <string name="attendance">Điểm danh</string>
+    <string name="add_post">Thêm bài viết</string>
+    <string name="start">Bắt đầu</string>
+    <string name="stop">Dừng</string>
+    <string name="attendance_successful">Điểm danh thành công! </string>
+    <string name="attendanced">Đã điểm danh</string>
+    <string name="att_history">Lịch sử điểm danh</string>
+</resources>

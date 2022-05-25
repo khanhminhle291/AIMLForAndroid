@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "397011999483",
+    "firebase_url": "https://aiml-96dbb-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "aiml-96dbb",
+    "storage_bucket": "aiml-96dbb.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:397011999483:android:48f19f0dd049c72f30ae5e",
+        "android_client_info": {
+          "package_name": "com.ak.aimlforandroid"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "397011999483-cudo3vl2oeh9bpboaicpupjnpsg12vpp.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDelPie95_QuUm5gQCfGVwanOVOQ-ZEdqo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "397011999483-cudo3vl2oeh9bpboaicpupjnpsg12vpp.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
