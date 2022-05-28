@@ -40,7 +40,9 @@ android {
 
 dependencies {
 
-    
+    // https://mvnrepository.com/artifact/net.sourceforge.jexcelapi/jxl
+    implementation group: 'net.sourceforge.jexcelapi', name: 'jxl', version: '2.6.12'
+
 
     def core_version = "1.6.0"
     implementation "androidx.core:core:$core_version"

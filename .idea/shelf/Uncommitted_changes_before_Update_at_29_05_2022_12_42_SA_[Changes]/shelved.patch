@@ -1,0 +1,404 @@
+Index: app/src/main/java/com/ak/aimlforandroid/UI/Classroom/StudentList.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.ak.aimlforandroid.UI.Classroom;\r\n\r\nimport androidx.appcompat.app.AppCompatActivity;\r\nimport androidx.recyclerview.widget.LinearLayoutManager;\r\nimport androidx.recyclerview.widget.RecyclerView;\r\n\r\nimport android.os.Bundle;\r\n\r\nimport com.ak.aimlforandroid.UI.Classroom.adapter.ListUAdapter;\r\nimport com.ak.aimlforandroid.UI.Models.User;\r\nimport com.ak.aimlforandroid.Untils.Constants;\r\nimport com.ak.aimlforandroid.databinding.ActivityStudentListBinding;\r\nimport com.google.firebase.database.DataSnapshot;\r\n\r\nimport java.util.ArrayList;\r\n\r\npublic class StudentList extends AppCompatActivity {\r\n\r\n    private ActivityStudentListBinding binding;\r\n    private RecyclerView recyclerView;\r\n    private ListUAdapter adapter;\r\n    private String classID, name;\r\n    @Override\r\n    protected void onCreate(Bundle savedInstanceState) {\r\n        super.onCreate(savedInstanceState);\r\n        binding = ActivityStudentListBinding.inflate(getLayoutInflater());\r\n        setContentView(binding.getRoot());\r\n        classID = getIntent().getStringExtra(\"classID\");\r\n        name = getIntent().getStringExtra(\"name\");\r\n        recyclerView = binding.rcv;\r\n        recyclerView.setLayoutManager(new LinearLayoutManager(this));\r\n        Constants.CLASSROOM_DB.child(classID).child(Constants.ATTENDANCED).child(name).child(\"STUDENT_LIST\").get()\r\n                .addOnCompleteListener(task -> {\r\n                    if (task.isComplete()){\r\n                        ArrayList<User> users = new ArrayList<>();\r\n                        for (DataSnapshot data : task.getResult().getChildren()){\r\n                            users.add(data.getValue(User.class));\r\n                        }\r\n                        adapter = new ListUAdapter(StudentList.this, users);\r\n                        recyclerView.setAdapter(adapter);\r\n                    }\r\n                });\r\n\r\n        binding.closeActi.setOnClickListener(v -> {\r\n            finish();\r\n        });\r\n    }\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/ak/aimlforandroid/UI/Classroom/StudentList.java b/app/src/main/java/com/ak/aimlforandroid/UI/Classroom/StudentList.java
+--- a/app/src/main/java/com/ak/aimlforandroid/UI/Classroom/StudentList.java	(revision de5e8715faf85f77eadb8cc5414c1228d1bdba65)
++++ b/app/src/main/java/com/ak/aimlforandroid/UI/Classroom/StudentList.java	(date 1653759543695)
+@@ -1,10 +1,23 @@
+ package com.ak.aimlforandroid.UI.Classroom;
+ 
++import androidx.annotation.NonNull;
++import androidx.annotation.Nullable;
+ import androidx.appcompat.app.AppCompatActivity;
++import androidx.core.app.ActivityCompat;
++import androidx.core.content.ContextCompat;
+ import androidx.recyclerview.widget.LinearLayoutManager;
+ import androidx.recyclerview.widget.RecyclerView;
+ 
++import android.Manifest;
++import android.content.Intent;
++import android.content.pm.PackageManager;
++import android.net.Uri;
++import android.os.Build;
+ import android.os.Bundle;
++import android.os.Environment;
++import android.provider.DocumentsContract;
++import android.provider.Settings;
++import android.widget.Toast;
+ 
+ import com.ak.aimlforandroid.UI.Classroom.adapter.ListUAdapter;
+ import com.ak.aimlforandroid.UI.Models.User;
+@@ -12,7 +25,23 @@
+ import com.ak.aimlforandroid.databinding.ActivityStudentListBinding;
+ import com.google.firebase.database.DataSnapshot;
+ 
++import java.io.File;
++import java.io.FileNotFoundException;
++import java.io.FileOutputStream;
++import java.io.FileWriter;
++import java.io.IOException;
++import java.io.OutputStream;
++import java.nio.charset.StandardCharsets;
+ import java.util.ArrayList;
++import java.util.Locale;
++
++import jxl.Workbook;
++import jxl.WorkbookSettings;
++import jxl.write.Label;
++import jxl.write.WritableSheet;
++import jxl.write.WritableWorkbook;
++import jxl.write.WriteException;
++import jxl.write.biff.RowsExceededException;
+ 
+ public class StudentList extends AppCompatActivity {
+ 
+@@ -20,6 +49,9 @@
+     private RecyclerView recyclerView;
+     private ListUAdapter adapter;
+     private String classID, name;
++    private ArrayList<User> users;
++    private final int WRITE_EXTERNAL_STORAGE_REQUEST_CODE = 1;
++    private final int CREATE_FILE_CODE = 11;
+     @Override
+     protected void onCreate(Bundle savedInstanceState) {
+         super.onCreate(savedInstanceState);
+@@ -27,22 +59,185 @@
+         setContentView(binding.getRoot());
+         classID = getIntent().getStringExtra("classID");
+         name = getIntent().getStringExtra("name");
++        users = new ArrayList<>();
+         recyclerView = binding.rcv;
+         recyclerView.setLayoutManager(new LinearLayoutManager(this));
++        adapter = new ListUAdapter(StudentList.this, users);
++        recyclerView.setAdapter(adapter);
++
++        binding.title.setText(name);
+         Constants.CLASSROOM_DB.child(classID).child(Constants.ATTENDANCED).child(name).child("STUDENT_LIST").get()
+                 .addOnCompleteListener(task -> {
+                     if (task.isComplete()){
+-                        ArrayList<User> users = new ArrayList<>();
++                        users.clear();
+                         for (DataSnapshot data : task.getResult().getChildren()){
+                             users.add(data.getValue(User.class));
+                         }
+-                        adapter = new ListUAdapter(StudentList.this, users);
+-                        recyclerView.setAdapter(adapter);
++                        binding.export.setEnabled(true);
++                        adapter.notifyDataSetChanged();
+                     }
+                 });
+ 
+         binding.closeActi.setOnClickListener(v -> {
+             finish();
+         });
++
++        binding.export.setOnClickListener(v->{
++            if (checkPermission()){
++                try {
++                    exportDataToCSV();
++                } catch (IOException e) {
++                    e.printStackTrace();
++                }
++            }else {
++                requestPermission();
++            }
++        });
++    }
++
++    private boolean checkPermission(){
++        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.R){
++            return Environment.isExternalStorageManager();
++        }else {
++            return ContextCompat.checkSelfPermission(this,Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
++                    && ContextCompat.checkSelfPermission(this,Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
++        }
++    }
++
++    private void requestPermission(){
++
++        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.R){
++            try {
++                Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
++                intent.addCategory("android.intent.category.DEFAULT");
++                intent.setData(Uri.parse(String.format("package:%s",getApplicationContext().getPackageName())));
++                startActivityForResult(intent, WRITE_EXTERNAL_STORAGE_REQUEST_CODE);
++            } catch (Exception e) {
++                Intent intent = new Intent();
++                intent.setAction(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
++                startActivityForResult(intent, WRITE_EXTERNAL_STORAGE_REQUEST_CODE);
++            }
++        }else {
++            ActivityCompat.requestPermissions(this,new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE,Manifest.permission.READ_EXTERNAL_STORAGE},WRITE_EXTERNAL_STORAGE_REQUEST_CODE);
++        }
++    }
++
++
++    public static String toCSVline(User user) {
++        String result = "";
++
++        StringBuilder sb = new StringBuilder();
++        sb.append(String.valueOf(user.getId())).append(",");
++        sb.append(user.getTen()).append(",");
++        sb.append(user.getEmail()).append(",");
++        result = sb.deleteCharAt(sb.length() - 1).toString();
++
++        return result+"\n";
++    }
++
++    String csvData;
++    private void exportDataToCSV() throws IOException {
++        csvData = "";
++        for (User u : users) {
++            csvData += toCSVline(u);
++
++        }
++
++
++//        File directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
++//        String uniqueFileName = name;
++//        File file = new File(directory, uniqueFileName);
++//        FileWriter fileWriter = new FileWriter(file);
++//        fileWriter.write(csvData);
++//        fileWriter.flush();
++//        fileWriter.close();
++//        Toast.makeText(this, "File Exported Successfully", Toast.LENGTH_SHORT).show();
++
++        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
++        intent.addCategory(Intent.CATEGORY_OPENABLE);
++        intent.setType("text/xlsx");
++        intent.putExtra(Intent.EXTRA_TITLE,name+".xlsx");
++        intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI,"");
++        startActivityForResult(intent,CREATE_FILE_CODE);
++
++    }
++
++    @Override
++    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
++        super.onActivityResult(requestCode, resultCode, data);
++        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.R && (requestCode==WRITE_EXTERNAL_STORAGE_REQUEST_CODE)){
++            if (Environment.isExternalStorageManager()){
++                try {
++                    exportDataToCSV();
++                } catch (IOException e) {
++                    e.printStackTrace();
++                }
++            }else {
++                Toast.makeText(this, "Chưa cấp quyền", Toast.LENGTH_SHORT).show();
++            }
++        }
++        if (requestCode == CREATE_FILE_CODE){
++            if (resultCode == RESULT_OK){
++                Uri uri = data.getData();
++                WritableWorkbook workbook;
++                WorkbookSettings settings = new WorkbookSettings();
++                settings.setLocale(new Locale("vn","VN"));
++                try {
++                    OutputStream outputStream = getContentResolver().openOutputStream(uri);
++                    workbook = Workbook.createWorkbook(outputStream,settings);
++                    WritableSheet sheet = workbook.createSheet(name,0);
++                    sheet.addCell(new Label(0,0,"Mã sinh viên"));
++                    sheet.addCell(new Label(1,0,"Họ và Tên"));
++                    sheet.addCell(new Label(2,0,"Email"));
++                    for (int i = 0 ; i<users.size(); i++){
++                        sheet.addCell(new Label(0,i+2,String.valueOf(users.get(i).getId())));
++                        sheet.addCell(new Label(1,i+2,users.get(i).getTen()));
++                        sheet.addCell(new Label(2,i+2,users.get(i).getEmail()));
++                    }
++                    workbook.write();
++                    workbook.close();
++                    Toast.makeText(this, "Lưu thành công", Toast.LENGTH_SHORT).show();
++                } catch (IOException e) {
++                    e.printStackTrace();
++                    Toast.makeText(this, "Lưu thất bại: "+e.getMessage(), Toast.LENGTH_SHORT).show();
++                } catch (RowsExceededException e) {
++                    e.printStackTrace();
++                    Toast.makeText(this, "Lưu thất bại: "+e.getMessage(), Toast.LENGTH_SHORT).show();
++                } catch (WriteException e) {
++                    e.printStackTrace();
++                    Toast.makeText(this, "Lưu thất bại: "+e.getMessage(), Toast.LENGTH_SHORT).show();
++                }
++//                try {
++//                    OutputStream outputStream = this.getContentResolver().openOutputStream(uri);
++//                    outputStream.write(csvData.getBytes(StandardCharsets.UTF_8));
++//                    outputStream.close();
++//                    Toast.makeText(this, "Lưu thành công", Toast.LENGTH_SHORT).show();
++//                } catch (FileNotFoundException e) {
++//                    e.printStackTrace();
++//                    Toast.makeText(this, "Lưu thất bại: "+e.getMessage(), Toast.LENGTH_SHORT).show();
++//                } catch (IOException e) {
++//                    e.printStackTrace();
++//                    Toast.makeText(this, "Lưu thất bại: "+e.getMessage(), Toast.LENGTH_SHORT).show();
++//                }
++            }else {
++                Toast.makeText(this, "Lưu thất bại", Toast.LENGTH_SHORT).show();
++            }
++        }
++    }
++
++    @Override
++    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
++        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
++        if (requestCode == WRITE_EXTERNAL_STORAGE_REQUEST_CODE){
++            if ((grantResults[0]==PackageManager.PERMISSION_GRANTED)&&(grantResults[1]==PackageManager.PERMISSION_GRANTED)){
++                try {
++                    exportDataToCSV();
++                } catch (IOException e) {
++                    e.printStackTrace();
++                }
++            }else {
++                Toast.makeText(this, "Chưa cấp quyền", Toast.LENGTH_SHORT).show();
++            }
++        }
+     }
+ }
+\ No newline at end of file
+Index: app/build.gradle
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>plugins {\r\n    id 'com.android.application'\r\n    id 'com.google.gms.google-services'\r\n}\r\n\r\nandroid {\r\n    compileSdk 31\r\n\r\n    defaultConfig {\r\n        applicationId \"com.ak.aimlforandroid\"\r\n        minSdk 26\r\n        targetSdk 31\r\n        versionCode 1\r\n        versionName \"1.0\"\r\n\r\n        testInstrumentationRunner \"androidx.test.runner.AndroidJUnitRunner\"\r\n    }\r\n\r\n    buildTypes {\r\n        release {\r\n            minifyEnabled false\r\n            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'\r\n        }\r\n\r\n        viewBinding{\r\n            enabled true\r\n        }\r\n    }\r\n\r\n\r\n    compileOptions {\r\n        sourceCompatibility JavaVersion.VERSION_1_8\r\n        targetCompatibility JavaVersion.VERSION_1_8\r\n    }\r\n    namespace 'com.ak.aimlforandroid'\r\n    buildFeatures {\r\n        viewBinding true\r\n    }\r\n}\r\n\r\ndependencies {\r\n\r\n    \r\n\r\n    def core_version = \"1.6.0\"\r\n    implementation \"androidx.core:core:$core_version\"\r\n\r\n    implementation 'com.google.mlkit:face-detection:16.1.5'\r\n\r\n    def camerax_version = \"1.1.0-beta03\"\r\n    implementation \"androidx.camera:camera-camera2:${camerax_version}\"\r\n    implementation \"androidx.camera:camera-core:${camerax_version}\"\r\n    implementation \"androidx.camera:camera-view:${camerax_version}\"\r\n    implementation \"androidx.camera:camera-lifecycle:${camerax_version}\"\r\n\r\n    implementation 'org.tensorflow:tensorflow-lite:2.8.0'\r\n    implementation 'org.tensorflow:tensorflow-lite-gpu:2.8.0'\r\n    implementation 'org.tensorflow:tensorflow-lite-support:0.4.0-rc0'\r\n\r\n    implementation 'com.squareup.picasso:picasso:2.71828'\r\n\r\n    implementation 'androidx.appcompat:appcompat:1.4.1'\r\n    implementation 'com.google.android.material:material:1.6.0'\r\n    implementation 'com.google.firebase:firebase-auth:21.0.3'\r\n    implementation 'androidx.constraintlayout:constraintlayout:2.1.3'\r\n    implementation 'com.google.firebase:firebase-database:20.0.5'\r\n    implementation 'androidx.legacy:legacy-support-v4:1.0.0'\r\n    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.3.1'\r\n    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.1'\r\n    implementation 'androidx.navigation:navigation-fragment:2.3.5'\r\n    implementation 'androidx.navigation:navigation-ui:2.3.5'\r\n    testImplementation 'junit:junit:4.13.2'\r\n    androidTestImplementation 'androidx.test.ext:junit:1.1.3'\r\n    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/build.gradle b/app/build.gradle
+--- a/app/build.gradle	(revision de5e8715faf85f77eadb8cc5414c1228d1bdba65)
++++ b/app/build.gradle	(date 1653757784691)
+@@ -40,7 +40,9 @@
+ 
+ dependencies {
+ 
+-    
++    // https://mvnrepository.com/artifact/net.sourceforge.jexcelapi/jxl
++    implementation group: 'net.sourceforge.jexcelapi', name: 'jxl', version: '2.6.12'
++
+ 
+     def core_version = "1.6.0"
+     implementation "androidx.core:core:$core_version"
+Index: .idea/deploymentTargetDropDown.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/deploymentTargetDropDown.xml b/.idea/deploymentTargetDropDown.xml
+new file mode 100644
+--- /dev/null	(date 1653751830634)
++++ b/.idea/deploymentTargetDropDown.xml	(date 1653751830634)
+@@ -0,0 +1,37 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="deploymentTargetDropDown">
++    <runningDeviceTargetSelectedWithDropDown>
++      <Target>
++        <type value="RUNNING_DEVICE_TARGET" />
++        <deviceKey>
++          <Key>
++            <type value="SERIAL_NUMBER" />
++            <value value="6648c9a6" />
++          </Key>
++        </deviceKey>
++      </Target>
++    </runningDeviceTargetSelectedWithDropDown>
++    <timeTargetWasSelectedWithDropDown value="2022-05-28T15:28:35.410123400Z" />
++    <runningDeviceTargetsSelectedWithDialog>
++      <Target>
++        <type value="RUNNING_DEVICE_TARGET" />
++        <deviceKey>
++          <Key>
++            <type value="SERIAL_NUMBER" />
++            <value value="6648c9a6" />
++          </Key>
++        </deviceKey>
++      </Target>
++      <Target>
++        <type value="RUNNING_DEVICE_TARGET" />
++        <deviceKey>
++          <Key>
++            <type value="VIRTUAL_DEVICE_PATH" />
++            <value value="C:\Users\iggan\.android\avd\Pixel_5_API_30_2.avd" />
++          </Key>
++        </deviceKey>
++      </Target>
++    </runningDeviceTargetsSelectedWithDialog>
++  </component>
++</project>
+\ No newline at end of file
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"ProjectRootManager\" version=\"2\" languageLevel=\"JDK_11\" default=\"true\" project-jdk-name=\"Android Studio default JDK\" project-jdk-type=\"JavaSDK\">\r\n    <output url=\"file://$PROJECT_DIR$/build/classes\" />\r\n  </component>\r\n  <component name=\"ProjectType\">\r\n    <option name=\"id\" value=\"Android\" />\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/misc.xml b/.idea/misc.xml
+--- a/.idea/misc.xml	(revision de5e8715faf85f77eadb8cc5414c1228d1bdba65)
++++ b/.idea/misc.xml	(date 1653749404904)
+@@ -1,5 +1,12 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
++  <component name="DesignSurface">
++    <option name="filePathToZoomLevelMap">
++      <map>
++        <entry key="..\:/DATA/AndroidStudio/AIMLForAndroid/app/src/main/res/layout/activity_student_list.xml" value="0.3423913043478261" />
++      </map>
++    </option>
++  </component>
+   <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
+     <output url="file://$PROJECT_DIR$/build/classes" />
+   </component>
+Index: app/src/main/AndroidManifest.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">\r\n\r\n    <uses-permission android:name=\"android.permission.CAMERA\" />\r\n    <uses-permission android:name=\"android.permission.INTERNET\" />\r\n    <uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\" />\r\n    <uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\" />\r\n    <uses-permission android:name=\"android.permission.MANAGE_EXTERNAL_STORAGE\" />\r\n\r\n    <application\r\n        android:allowBackup=\"true\"\r\n        android:icon=\"@mipmap/ic_launcher\"\r\n        android:label=\"@string/app_name\"\r\n        android:roundIcon=\"@mipmap/ic_launcher_round\"\r\n        android:supportsRtl=\"true\"\r\n        android:theme=\"@style/Theme.AIMLForAndroid\">\r\n        <activity\r\n            android:name=\".UI.Classroom.AddPost\"\r\n            android:exported=\"false\" />\r\n        <activity\r\n            android:name=\".UI.ResetPassWord.ResetPassWord\"\r\n            android:exported=\"false\" />\r\n        <activity\r\n            android:name=\".UI.Classroom.StudentList\"\r\n            android:exported=\"false\" />\r\n        <activity\r\n            android:name=\".UI.Classroom.AttendancedList\"\r\n            android:exported=\"false\" />\r\n        <activity\r\n            android:name=\".UI.Classroom.CreateAttendanceRoom.CreateAttendance\"\r\n            android:exported=\"false\" />\r\n        <activity\r\n            android:name=\".UI.Attendance.Attendance\"\r\n            android:exported=\"false\" />\r\n        <activity\r\n            android:name=\".UI.AddFaceData.AddFaceData\"\r\n            android:exported=\"false\" />\r\n        <activity\r\n            android:name=\".UI.diemdanhtest\"\r\n            android:exported=\"false\" />\r\n        <activity\r\n            android:name=\".UI.Classroom.ClassroomDetail\"\r\n            android:exported=\"false\"\r\n            android:label=\"@string/title_activity_classroom_detail\" />\r\n        <activity\r\n            android:name=\".UI.PROFILE.PROFILE\"\r\n            android:exported=\"false\" />\r\n        <activity\r\n            android:name=\".UI.JoinClassroom.JoinClassroom\"\r\n            android:exported=\"false\" />\r\n        <activity\r\n            android:name=\".UI.AddClass.AddClass\"\r\n            android:exported=\"false\" />\r\n        <activity\r\n            android:name=\".UI.SIGNUP.Signup\"\r\n            android:exported=\"false\" />\r\n        <activity\r\n            android:name=\".UI.HOME.Home\"\r\n            android:exported=\"false\" />\r\n        <activity\r\n            android:name=\".UI.LOGIN.Login\"\r\n            android:exported=\"false\" />\r\n        <activity\r\n            android:name=\".SpLash\"\r\n            android:exported=\"true\">\r\n            <intent-filter>\r\n                <action android:name=\"android.intent.action.MAIN\" />\r\n\r\n                <category android:name=\"android.intent.category.LAUNCHER\" />\r\n            </intent-filter>\r\n        </activity>\r\n    </application>\r\n\r\n</manifest>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml
+--- a/app/src/main/AndroidManifest.xml	(revision de5e8715faf85f77eadb8cc5414c1228d1bdba65)
++++ b/app/src/main/AndroidManifest.xml	(date 1653753164469)
+@@ -3,8 +3,9 @@
+ 
+     <uses-permission android:name="android.permission.CAMERA" />
+     <uses-permission android:name="android.permission.INTERNET" />
+-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
++    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
++        android:maxSdkVersion="28" />
+     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+ 
+     <application
+@@ -13,6 +14,7 @@
+         android:label="@string/app_name"
+         android:roundIcon="@mipmap/ic_launcher_round"
+         android:supportsRtl="true"
++        android:requestLegacyExternalStorage="true"
+         android:theme="@style/Theme.AIMLForAndroid">
+         <activity
+             android:name=".UI.Classroom.AddPost"
+Index: app/src/main/res/layout/activity_student_list.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"\r\n    xmlns:app=\"http://schemas.android.com/apk/res-auto\"\r\n    xmlns:tools=\"http://schemas.android.com/tools\"\r\n    android:layout_width=\"match_parent\"\r\n    android:layout_height=\"match_parent\"\r\n    tools:context=\".UI.Classroom.StudentList\"\r\n    android:orientation=\"vertical\">\r\n    <androidx.appcompat.widget.Toolbar\r\n        android:gravity=\"center_vertical\"\r\n        android:layout_width=\"match_parent\"\r\n        android:layout_height=\"?actionBarSize\">\r\n        <ImageButton\r\n            android:id=\"@+id/close_acti\"\r\n            android:background=\"@drawable/ic_baseline_close_24\"\r\n            android:layout_width=\"wrap_content\"\r\n            android:layout_height=\"wrap_content\"/>\r\n        <TextView\r\n            android:id=\"@+id/title\"\r\n            android:layout_marginStart=\"30sp\"\r\n            android:textColor=\"@color/black\"\r\n            android:textSize=\"20sp\"\r\n            android:layout_width=\"wrap_content\"\r\n            android:layout_height=\"wrap_content\"/>\r\n    </androidx.appcompat.widget.Toolbar>\r\n    <androidx.recyclerview.widget.RecyclerView\r\n        android:id=\"@+id/rcv\"\r\n        android:layout_width=\"match_parent\"\r\n        android:layout_height=\"match_parent\"/>\r\n</LinearLayout>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/res/layout/activity_student_list.xml b/app/src/main/res/layout/activity_student_list.xml
+--- a/app/src/main/res/layout/activity_student_list.xml	(revision de5e8715faf85f77eadb8cc5414c1228d1bdba65)
++++ b/app/src/main/res/layout/activity_student_list.xml	(date 1653749859125)
+@@ -22,6 +22,14 @@
+             android:textSize="20sp"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"/>
++        <Button
++            android:id="@+id/export"
++            android:text="Xuất ra máy"
++            android:enabled="false"
++            android:layout_marginEnd="10sp"
++            android:layout_gravity="end"
++            android:layout_width="wrap_content"
++            android:layout_height="wrap_content"/>
+     </androidx.appcompat.widget.Toolbar>
+     <androidx.recyclerview.widget.RecyclerView
+         android:id="@+id/rcv"
