@@ -12,6 +12,7 @@ import android.view.inputmethod.InputMethodManager;
 
 import com.ak.aimlforandroid.R;
 import com.ak.aimlforandroid.UI.Models.Classroom;
+import com.ak.aimlforandroid.UI.Models.User;
 import com.ak.aimlforandroid.Untils.Constants;
 import com.ak.aimlforandroid.databinding.ActivityJoinClassroomBinding;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -32,10 +33,11 @@ public class JoinClassroom extends AppCompatActivity {
         clickEvent();
     }
 
+    String classID;
     private void clickEvent() {
         binding.create.setOnClickListener(v->{
             closeKeyboard();
-            Constants.CLASSROOM_DB.child(binding.idclassroom.getText().toString().trim())
+            Constants.CLASSROOM_DB.child((classID = binding.idclassroom.getText().toString().trim()))
                     .get()
                     .addOnSuccessListener(new OnSuccessListener<DataSnapshot>() {
                         @Override
@@ -44,6 +46,13 @@ public class JoinClassroom extends AppCompatActivity {
                             if (classroom!=null){
                                 Constants.USER_DB.child(Constants.AUTH.getCurrentUser().getUid()).child(Constants.CLASS_LIST)
                                         .child(classroom.getId()).setValue(classroom.getTen());
+                                Constants.USER_DB.child(Constants.AUTH.getCurrentUser().getUid()).get()
+                                                .addOnSuccessListener(dataSnapshot1 -> {
+                                                    User user = dataSnapshot1.getValue(User.class);
+                                                    if (user!=null){
+                                                        Constants.CLASSROOM_DB.child(classID).child("STUDENT_LIST").child(String.valueOf(user.getId())).setValue(user);
+                                                    }
+                                                });
                                 finish();
                             }
                             else {
